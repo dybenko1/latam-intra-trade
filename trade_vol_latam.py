@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 subscription_key = os.getenv("un_key")
 
-# Definong parameters for make data request
+# Defining parameters for make data request
 typeCode='C' #Commodities data
 freqCode='A' # Annual frequency
 clCode='HS' # Harmonized System classification
@@ -22,9 +22,9 @@ request_url = f"https://comtradeapi.un.org/data/v1/get/{typeCode}/{freqCode}/{cl
 headers = {'Ocp-Apim-Subscription-Key': subscription_key}
 params = {
     "reporterCode": reporter,
-    "period": 2023, # 2023 is the lastest year now (october 2025) which has data for all selected countries
+    "period": 2023, # 2023 is the latest year now (october 2025) which has data for all selected countries
     "partnerCode": reporter + ",0", # Including the total trade of that country with the partner code '0'
-    "partner2Code": "0", # Avoiding tripartite trade deaggregation 
+    "partner2Code": "0", # Avoiding tripartite trade de-aggregation 
     "cmdCode": "TOTAL", # Focusing on all goods, not on a specific good given by its cmdCode
     "flowCode": flowCode, # Export or Import
     "customsCode": "C00", # We select all data from the Customs code filter
@@ -76,7 +76,7 @@ data = pd.concat([data, pd.DataFrame(response.json()["data"])])
 required_cols = ["reporterCode", "flowCode", "partnerCode", "primaryValue"]
 summary_data = data.loc[:, required_cols]
 
-# Classifying partner countries as Latam or not Latam. Other deeper analysis can be done witout aggregating data with this category
+# Classifying partner countries as Latam or not Latam. Other deeper analysis can be done without aggregating data with this category
 def find_country(valor):
     return countries_dict.get(valor, "Not LatinAmerica")
 
@@ -86,16 +86,16 @@ summary_data["part_country"] = summary_data["partnerCode"].apply(find_country)
 
 summary_data["NotLATAM"] = summary_data["part_country"] == "Not LatinAmerica"
 
-# Sumando import y exports 
+# Adding import & exports 
 summary_data = summary_data[['reporterCode', 'partnerCode',
        'rep_country', 'part_country', 'NotLATAM', 'primaryValue']].groupby(['reporterCode', 'partnerCode',
        'rep_country', 'part_country', 'NotLATAM']).sum().reset_index()
 
-# Datos de comercio intra-Latinoamerica
+# Trade data of intra-Latinoamerica
 summary_data.loc[summary_data["partnerCode"] != 0, ["rep_country", "primaryValue"]].groupby("rep_country").sum().sort_values(by="rep_country").to_clipboard()
 summary_data.loc[summary_data["partnerCode"] != 0, ["rep_country", "primaryValue"]].groupby("rep_country").sum().sort_values(by="rep_country")
 
-# Datos de comercio total (latam + no latam) copied to clipboard to then use it to build the graph
+# Total Trade Data (latam + no latam) copied to clipboard to then use it to build the graph
 summary_data.loc[summary_data["partnerCode"] == 0, ["rep_country", "primaryValue"]].sort_values(by="rep_country").to_clipboard()
 
 ## Checking Mexico Data to verify numbers
@@ -107,6 +107,6 @@ summary_data.loc[summary_data["partnerCode"] == 0, ["rep_country", "primaryValue
 #   Not using aggregate data: 
 #   Country codes can have both individual countries or regions (e.g. 637: Center and North America, 129 Caribbean, etc.), hence summing trade data with all its trading partner codes may have duplicated data
 #   This problem also occurs when summing by transport means, not all category codes are granular data
-#   That was the reason why I choose to work with aggregate data with those bariables and others like cmdCode
+#   That was the reason why I choose to work with aggregate data with those variables and others like cmdCode
 # 
-# To compute total trade with no latam countries I substract "Trade with Latam" from "Total Trade" 
+# To compute total trade with no latam countries I subtract "Trade with Latam" from "Total Trade" 
